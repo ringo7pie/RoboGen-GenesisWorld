@@ -272,7 +272,63 @@
 <div class="note">つまり本システムの「学習」の流れは — <b>GPT がタスクと報酬関数（.py）を書く（ステップB）→ その報酬を使って SAC がロボットの動かし方（ニューラルネット方策）を学ぶ（ステップC）</b> — という2段構えです。検証時のリターン（累積報酬）が負のままなのは 2 万ステップの短縮設定のためで、パイプライン確認としては正常です。</div>
 
 <!-- ================================================================ -->
-<h2 class="section">4. 出力ファイル一覧（詳しい説明）</h2>
+<h2 class="section">4. GPT-4o の役割 — どこで・何を生成しているか</h2>
+
+<div class="fbox llm" style="margin-bottom:14px">
+  <b class="tag">LLM</b><b>GPT-4o が呼ばれるのはステップB（セル9）だけ。「ロボットの先生」として練習メニュー一式を書く</b>
+  <div class="desc">呼び出しはすべて <span class="f proc">gpt_4/query.py</span> の <code>query()</code> 経由（パッチ01 で新 openai SDK 化済み）。
+  モデル名は環境変数 <code>ROBOGEN_LLM_MODEL</code>（セル8 で <code>gpt-4o</code> に設定）でいつでも変更可能。
+  <b>物理シミュレーション・モーションプランニング・強化学習の実行中（ステップA・C）には GPT は一切呼ばれません</b>（＝API 課金が発生するのはセル8〜9 のみ）。</div>
+</div>
+
+<table>
+  <tr><th style="width:24%">呼び出し（役割）</th><th style="width:37%">GPT への入力</th><th>GPT の出力（何が作られるか）</th></tr>
+  <tr>
+    <td><b>① タスク設計</b><br><span style="font-size:12px;color:var(--muted)">temperature 0.6（発想寄り）</span></td>
+    <td>ユーザーの説明文（TASK_DESCRIPTION）＋対象オブジェクトの<b>関節ツリー・semantics テキスト</b>（<span class="f in">data/dataset/&lt;ID&gt;/</span> 付属。「link_0 = 回転関節の扉」のような構造情報）</td>
+    <td>タスク名・詳細説明・操作すべきリンク/関節の選定・タスクに必要な追加オブジェクトの案 → <span class="f out">config.yaml</span> の骨格</td>
+  </tr>
+  <tr>
+    <td><b>② サブステップ分解</b></td>
+    <td>①で決まったタスク内容</td>
+    <td>手順の分解と<b>各手順の解き方の割り当て</b>: 「掴む」= primitive（モーションプランニング）/「開く」= reward（強化学習）、および RL の行動空間 → <span class="f out">substeps.txt</span> <span class="f out">substep_types.txt</span> <span class="f out">action_spaces.txt</span></td>
+  </tr>
+  <tr>
+    <td><b>③ 報酬関数・実行コードの生成</b><br><span style="font-size:12px;color:var(--muted)">temperature 0.2（厳密寄り）</span></td>
+    <td>サブステップ内容＋シミュレータ API の説明（利用できる関数一覧を含むプロンプト雛形 <span class="f in">gpt_4/prompts/prompt_manipulation_reward_primitive.py</span>）</td>
+    <td><b>実行可能な Python コード</b>: reward 型には報酬関数 <code>compute_reward()</code>（例: 画面の開き角が大きいほど高報酬）、primitive 型には把持対象の指定コード → <span class="f out">サブステップ .py 群</span>。<b>ステップC の強化学習はこの GPT 製の報酬式を最大化する</b></td>
+  </tr>
+  <tr>
+    <td><b>④ シーン YAML の組み立て</b><br><span style="font-size:12px;color:var(--muted)">temperature 0.3</span></td>
+    <td>①〜③の結果</td>
+    <td>オブジェクト一覧・配置・机の有無などをまとめた最終 <span class="f out">config.yaml</span></td>
+  </tr>
+  <tr>
+    <td><b>⑤ サイズの妥当性チェック</b><br><span style="font-size:12px;color:var(--muted)">temperature 0.1</span></td>
+    <td>各オブジェクトの名前と仮サイズ</td>
+    <td>物理的に妥当なサイズへの補正。実行ログに出ていた「The size of the floor lamp is reasonable…（フロアランプ 1.8m は妥当）」という英文が、まさにこの呼び出しの GPT 応答</td>
+  </tr>
+  <tr>
+    <td><b>⑥ 初期関節角の決定</b><br><span style="font-size:12px;color:var(--muted)">temperature 0</span></td>
+    <td>タスク内容と対象の関節情報（<span class="f in">gpt_4/prompts/prompt_set_joint_angle.py</span>）</td>
+    <td>タスク開始時の関節状態（例: 「開くタスクだから最初は閉じた状態 <code>joint_0: '0'</code>」）→ YAML の <code>set_joint_angle_object_name</code> 欄</td>
+  </tr>
+  <tr>
+    <td><b>⑦ 空間関係の決定</b><br><span style="font-size:12px;color:var(--muted)">temperature 0</span></td>
+    <td>オブジェクト一覧（<span class="f in">gpt_4/prompts/prompt_spatial_relationship.py</span>）</td>
+    <td>「A は B の上」等の配置制約 → YAML の <code>spatial_relationships</code> 欄</td>
+  </tr>
+  <tr>
+    <td><b>⑧ 妨害物体（distractor）の提案</b><br><span style="font-size:12px;color:var(--muted)">おまけ・学習には不使用</span></td>
+    <td>タスク内容（<span class="f in">gpt_4/prompts/prompt_distractor.py</span>）</td>
+    <td>シーンを賑やかにする無関係な物体の案（実行ログの floor_lamp / rug / plant / wall_clock がこれ）。物体検索に数十 GB の埋め込みが必要なため、今回の構成では生成をスキップ（学習に影響なし）</td>
+  </tr>
+</table>
+
+<div class="note"><b>temperature（出力のばらつき度合い）を役割ごとに変えている</b>のが RoboGen の設計の特徴です: タスクの発想（①）は 0.6 で多様に、コード生成（③）は 0.2、サイズ・関節・空間関係（⑤⑥⑦）は 0〜0.1 でほぼ決定的に生成します。逆に <b>GPT が関与しないもの</b> — ステップA の再生、OMPL の軌道計画、SAC の学習、動画レンダリング — はすべて GPT なしのローカル計算です。</div>
+
+<!-- ================================================================ -->
+<h2 class="section">5. 出力ファイル一覧（詳しい説明）</h2>
 
 <p style="font-size:13.5px;color:var(--muted)">出力の起点 = タスク YAML 内の <code>solution_path</code>（例題は <code>example_tasks/Open_Laptop/task_Open_Laptop/</code>、生成タスクは <code>data/generated_task_from_description/…/task_&lt;タスク&gt;/</code>）</p>
 
@@ -333,7 +389,7 @@
 </table>
 
 <!-- ================================================================ -->
-<h2 class="section">5. 処理の流れ（セル番号 × ファイル対応表）</h2>
+<h2 class="section">6. 処理の流れ（セル番号 × ファイル対応表）</h2>
 
 <table>
   <tr><th style="width:10%">セル</th><th style="width:26%">実行するもの</th><th style="width:30%">読む（入力）</th><th>書く（出力）</th></tr>
