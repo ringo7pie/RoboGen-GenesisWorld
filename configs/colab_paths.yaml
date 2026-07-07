@@ -1,0 +1,14 @@
+# Colab 実行時の各種パス定義
+# ノートブック・スクリプトはこのファイルを読んでパスを解決する（ハードコード禁止）
+
+repo_dir: /content/RoboGen-GenesisWorld          # 本リポジトリの clone 先
+robogen_dir: /content/RoboGen                    # RoboGen 本体の clone 先
+data_dir: /content/data                          # アセット展開先（Colab ローカル。Drive 直読みは遅いため）
+output_dir: /content/outputs                     # 動画・ログの出力先
+
+drive:
+  mount_point: /content/drive                    # Google Drive のマウント先
+  assets_dir: /content/drive/MyDrive/robogen_data              # ユーザーがアセットを置く場所
+  partnet_mobility_dir: /content/drive/MyDrive/robogen_data/partnet_mobility  # PartNet-Mobility の配置先
+  objaverse_cache_dir: /content/drive/MyDrive/robogen_data/objaverse_cache    # Objaverse の DL キャッシュ
+  outputs_dir: /content/drive/MyDrive/robogen_outputs          # 結果の永続保存先

@@ -1,0 +1,30 @@
+diff --git a/objaverse_utils/find_uid_utils.py b/objaverse_utils/find_uid_utils.py
+index 3fe4e23..a82d0e1 100644
+--- a/objaverse_utils/find_uid_utils.py
++++ b/objaverse_utils/find_uid_utils.py
+@@ -1,9 +1,9 @@
++import os   # 検証スキップ用の環境変数参照
+ import pandas as pd
+ import torch
+ from objaverse_utils.utils import text_to_uid_dict
+ from gpt_4.verification import check_text_similarity
+ import numpy as np
+-from gpt_4.bard_verify import verify_objaverse_object
+ import json
+ 
+ objaverse_csv = pd.read_csv('objaverse_utils/Cap3D_automated_Objaverse.csv')
+@@ -53,7 +53,13 @@ def find_uid(obj_descrption, candidate_num=10, debug=False, task_name=None, task
+             print("found description: ", all_description[sorted_idx[candidate_idx]])
+ 
+             candidate_uid = all_uids[sorted_idx[candidate_idx]]
+-            bard_verify_result = verify_objaverse_object(obj_descrption, candidate_uid, task_name=task_name, task_description=task_description) # TODO: add support for including task name in the checking process
++            if os.environ.get("ROBOGEN_SKIP_VERIFY", "1") == "1":
++                # BLIP-2 (salesforce-lavis) は Python 3.12 非対応のため、既定では画像検証を
++                # スキップして文埋め込み類似度の上位候補をそのまま採用する
++                bard_verify_result = True   # 検証スキップ時は常に採用
++            else:
++                from gpt_4.bard_verify import verify_objaverse_object   # 遅延 import（lavis が必要）
++                bard_verify_result = verify_objaverse_object(obj_descrption, candidate_uid, task_name=task_name, task_description=task_description) # TODO: add support for including task name in the checking process
+             print("{} Bard thinks this object is usable: {} {}".format("=" * 20, bard_verify_result, "=" * 20))
+             if bard_verify_result:
+                 usable_uids.append(candidate_uid)

@@ -1,0 +1,12 @@
+diff --git a/execute.py b/execute.py
+index b0088f5..419de5f 100644
+--- a/execute.py
++++ b/execute.py
+@@ -1,6 +1,6 @@
+ import yaml
+ import os
+-from RL.ray_learn import run_RL
++from RL.sb3_learn import run_RL   # ray 1.13 は Python 3.12 非対応のため stable-baselines3 実装に差し替え
+ import numpy as np
+ import pybullet as p
+ import time, datetime

@@ -1,0 +1,32 @@
+# ノートブック②（RoboGen 移植）用の依存パッケージ
+# 方針: torch / numpy / scipy / pandas は Colab プリインストール版を流用するため書かない
+# 各行の由来: [env]=environment.yaml 由来 / [置換]=新パッケージへの置換 / [追加]=Colab 移植で新規追加
+
+# --- 物理シミュレーション・モーションプランニング ---
+pybullet==3.2.7            # [env] 物理エンジン（3.2.5 から安全な範囲で更新）
+ompl==2.0.0                # [置換] OMPL 公式 PyPI wheel（元はソースビルド。cp310〜cp313 対応）
+
+# --- RL（強化学習） ---
+gymnasium>=0.29,<1.1       # [置換] 旧 gym 0.21 の後継（gym は Python 3.12 に非対応）
+stable-baselines3>=2.3,<3  # [置換] ray[rllib] 1.13 の代替（ray 1.13 は Python 3.12 で動作不能）
+
+# --- LLM タスク生成 ---
+openai>=1,<2               # [置換] 旧 openai 0.27 SDK から新 SDK へ（パッチ 01 で対応）
+tiktoken                   # [env] トークン数カウント
+
+# --- アセット処理 ---
+objaverse==0.0.7           # [env] Objaverse 3D アセットのダウンロード
+trimesh                    # [env] メッシュ処理（obj 変換・正規化）
+open3d>=0.18               # [env] 点群処理（0.14 は 3.12 非対応のため更新）
+transforms3d               # [env] 座標変換
+
+# --- 動画・画像 ---
+moviepy<2                  # [env] GIF 保存に moviepy.editor を使用（2.x で editor が削除されたため 1.x 固定）
+imageio[ffmpeg]            # [追加] GIF→mp4 変換用
+
+# --- テキスト埋め込み（Objaverse の物体検索。ステップB で使用） ---
+sentence-transformers      # [env] text→uid 検索の文埋め込み
+
+# --- ユーティリティ ---
+pyyaml                     # [env] タスク config の読み書き
+gdown                      # [追加] Google Drive からのアセット一括ダウンロード

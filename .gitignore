@@ -1,0 +1,17 @@
+# === 実行時生成物 ===
+outputs/            # シミュレーション結果（動画・ログ）の出力先
+*.mp4               # 録画動画
+*.gif               # 変換した GIF
+
+# === ローカル作業用（GitHub に含めない） ===
+RoboGen/            # パッチ作成の参照用にローカル clone した RoboGen 本体
+data/               # PartNet-Mobility / Objaverse 等のアセット置き場
+
+# === Python ===
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# === Claude Code 作業補助 ===
+.claude/
+CLAUDE.md
