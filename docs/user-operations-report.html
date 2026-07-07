@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ユーザー操作ガイド — RoboGen + Genesis World on Colab</title>
+<style>
+  /* ===== 基本テーマ（ライト/ダーク自動切替） ===== */
+  :root {
+    --bg: #f6f7fb;            /* ページ背景 */
+    --card: #ffffff;          /* カード背景 */
+    --text: #1f2430;          /* 本文色 */
+    --muted: #6b7280;         /* 補足文字色 */
+    --line: #e5e7eb;          /* 罫線色 */
+    --code-bg: #f1f3f7;       /* コード背景 */
+    --code-text: #24292f;     /* コード文字色 */
+    /* ステップ種別の色 */
+    --c-required: #dc2626;    /* 必須 = 赤 */
+    --c-required-bg: #fee2e2;
+    --c-cond: #d97706;        /* 条件付き = アンバー */
+    --c-cond-bg: #fef3c7;
+    --c-opt: #059669;         /* 任意 = 緑 */
+    --c-opt-bg: #d1fae5;
+    /* カテゴリチップの色 */
+    --chip-github: #24292f;   /* GitHub = 黒 */
+    --chip-colab: #ea8600;    /* Colab = オレンジ */
+    --chip-openai: #0d9488;   /* OpenAI = ティール */
+    --chip-drive: #2563eb;    /* Drive = 青 */
+    --chip-pc: #7c3aed;       /* ローカルPC = 紫 */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141a; --card: #1c1f27; --text: #e7e9ee; --muted: #9aa1ad;
+      --line: #2c3038; --code-bg: #262a33; --code-text: #d7dce3;
+      --c-required-bg: #3d1a1a; --c-cond-bg: #3a2c10; --c-opt-bg: #123328;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
+    line-height: 1.75; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* ===== ヘッダー ===== */
+  header {
+    background: linear-gradient(135deg, #4338ca, #7c3aed 55%, #0d9488);
+    color: #fff; border-radius: 14px; padding: 28px 32px; margin-bottom: 20px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 24px; }
+  header p { margin: 0; opacity: .92; }
+
+  /* ===== 凡例 ===== */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 26px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+  /* ===== サマリー表 ===== */
+  .overview { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .overview th, .overview td { padding: 10px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+  .overview th { background: rgba(124, 58, 237, .08); font-size: 13px; }
+  .overview tr:last-child td { border-bottom: none; }
+  .overview a { color: inherit; }
+
+  /* ===== ステップカード ===== */
+  .step {
+    background: var(--card); border-radius: 12px; margin-bottom: 22px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden;
+    border-left: 6px solid var(--muted);
+  }
+  .step.required { border-left-color: var(--c-required); }
+  .step.cond     { border-left-color: var(--c-cond); }
+  .step.opt      { border-left-color: var(--c-opt); }
+  .step-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 20px 4px; }
+  .step-num {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #fff; background: var(--muted); font-size: 15px;
+  }
+  .required .step-num { background: var(--c-required); }
+  .cond .step-num     { background: var(--c-cond); }
+  .opt .step-num      { background: var(--c-opt); }
+  .step-head h2 { margin: 0; font-size: 18px; flex: 1; min-width: 200px; }
+  .badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+  .badge.required { color: var(--c-required); background: var(--c-required-bg); }
+  .badge.cond     { color: var(--c-cond); background: var(--c-cond-bg); }
+  .badge.opt      { color: var(--c-opt); background: var(--c-opt-bg); }
+  .chip { font-size: 11.5px; font-weight: 600; color: #fff; padding: 3px 10px; border-radius: 999px; }
+  .chip.github { background: var(--chip-github); }
+  .chip.colab  { background: var(--chip-colab); }
+  .chip.openai { background: var(--chip-openai); }
+  .chip.drive  { background: var(--chip-drive); }
+  .chip.pc     { background: var(--chip-pc); }
+  .time { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+  .step-body { padding: 8px 20px 18px 64px; }
+  .step-body p { margin: 8px 0; }
+  ol.sub, ul.sub { margin: 8px 0; padding-left: 22px; }
+  ol.sub li, ul.sub li { margin: 5px 0; }
+
+  /* ===== コードブロック ===== */
+  pre {
+    background: var(--code-bg); color: var(--code-text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-size: 13px;
+    font-family: Consolas, "Courier New", monospace; line-height: 1.6;
+  }
+  code.inline {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 6px; font-size: 13px; font-family: Consolas, monospace;
+  }
+
+  /* ===== 補足ボックス ===== */
+  .note, .warn, .goal {
+    border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 14px;
+    border: 1px solid transparent;
+  }
+  .goal { background: var(--c-opt-bg); border-color: rgba(5,150,105,.35); }
+  .note { background: rgba(37, 99, 235, .10); border-color: rgba(37,99,235,.3); }
+  .warn { background: var(--c-cond-bg); border-color: rgba(217,119,6,.4); }
+  .goal::before { content: "✅ 成功の目印: "; font-weight: 700; }
+  .note::before { content: "💡 補足: "; font-weight: 700; }
+  .warn::before { content: "⚠ 注意: "; font-weight: 700; }
+
+  /* ===== チェックリスト ===== */
+  .checklist { background: var(--card); border-radius: 12px; padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .checklist h2 { margin-top: 0; font-size: 18px; }
+  .checklist label { display: block; padding: 6px 0; border-bottom: 1px dashed var(--line); cursor: pointer; }
+  .checklist label:last-child { border-bottom: none; }
+  .checklist input { margin-right: 10px; transform: scale(1.15); }
+
+  footer { color: var(--muted); font-size: 12.5px; text-align: center; margin: 26px 0 8px; }
+  h2.section { font-size: 20px; margin: 34px 0 14px; padding-left: 4px; border-left: 5px solid #7c3aed; padding-left: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>ユーザー操作ガイド</h1>
+  <p>RoboGen + Genesis World を Google Colab で実行するために、<strong>あなたの手で行う操作</strong>だけをまとめたレポートです（2026-07-07 作成）。</p>
+</header>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--c-required)"></span>必須 — 全員が必ず行う</span>
+  <span><span class="dot" style="background:var(--c-cond)"></span>条件付き — 特定機能を使うときだけ</span>
+  <span><span class="dot" style="background:var(--c-opt)"></span>任意 — やると便利</span>
+  <span style="margin-left:12px">場所: <span class="chip pc">ローカルPC</span> <span class="chip github">GitHub</span> <span class="chip colab">Colab</span> <span class="chip openai">OpenAI</span> <span class="chip drive">Drive</span></span>
+</div>
+
+<table class="overview">
+  <tr><th>#</th><th>操作</th><th>区分</th><th>所要時間</th><th>いつやるか</th></tr>
+  <tr><td>1</td><td><a href="#step1">GitHub リポジトリの作成と push</a></td><td><span class="badge required">必須</span></td><td>約 10 分</td><td>最初に1回</td></tr>
+  <tr><td>2</td><td><a href="#step2">ノートブック内の URL 置換</a></td><td><span class="badge required">必須</span></td><td>約 2 分</td><td>push 前に1回</td></tr>
+  <tr><td>3</td><td><a href="#step3">ノートブック①を Colab で実行（Genesis デモ）</a></td><td><span class="badge required">必須</span></td><td>約 15 分</td><td>push 後すぐ</td></tr>
+  <tr><td>4</td><td><a href="#step4">ノートブック②をステップA まで実行（RoboGen 再生）</a></td><td><span class="badge required">必須</span></td><td>約 30 分</td><td>①の成功後</td></tr>
+  <tr><td>5</td><td><a href="#step5">OpenAI API キーの Colab Secrets 登録</a></td><td><span class="badge cond">条件付き</span></td><td>約 3 分</td><td>ステップB を使う前</td></tr>
+  <tr><td>6</td><td><a href="#step6">ステップB / C の実行（タスク生成・学習）</a></td><td><span class="badge cond">条件付き</span></td><td>40 分〜</td><td>ステップA 成功後</td></tr>
+  <tr><td>7</td><td><a href="#step7">Google Drive の活用（キャッシュ・結果保存）</a></td><td><span class="badge opt">任意</span></td><td>約 2 分</td><td>②の実行中</td></tr>
+  <tr><td>8</td><td><a href="#step8">エラーが出たときの報告方法</a></td><td><span class="badge opt">随時</span></td><td>—</td><td>問題発生時</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<div class="step required" id="step1">
+  <div class="step-head">
+    <div class="step-num">1</div>
+    <h2>GitHub リポジトリの作成と push</h2>
+    <span class="badge required">必須</span>
+    <span class="chip pc">ローカルPC</span><span class="chip github">GitHub</span>
+    <span class="time">⏱ 約 10 分</span>
+  </div>
+  <div class="step-body">
+    <p>Colab のノートブックはセットアップ用スクリプトを GitHub から <code class="inline">git clone</code> して使います。そのため、作成済みのファイル一式を<strong>公開 (Public) リポジトリ</strong>として GitHub に置く必要があります。</p>
+    <ol class="sub">
+      <li><a href="https://github.com/new">github.com/new</a> で新規リポジトリを作成します。
+        <ul class="sub">
+          <li>リポジトリ名: <code class="inline">RoboGen-GenesisWorld</code>（変更可。変更した場合は手順2の URL も合わせる）</li>
+          <li>公開範囲: <strong>Public</strong>（Colab の無認証 clone に必要）</li>
+          <li>「Add a README file」等は<strong>すべてチェックなし</strong>（空のリポジトリにする）</li>
+        </ul>
+      </li>
+      <li>現在のフォルダは社内の Azure DevOps リポジトリの内部にあるため、<strong>公開用フォルダへコピーしてから</strong> push します。PowerShell で以下を実行してください:</li>
+    </ol>
+<pre># 公開用フォルダへコピー（参照用の RoboGen クローンと Claude 設定は除外する）
+robocopy E:\nkdx\USDFormat\Proj\RoboGen-GenesisWorld E:\nkdx\RoboGen-GenesisWorld-pub `
+    /E /XD RoboGen .claude __pycache__ /XF CLAUDE.md
+
+cd E:\nkdx\RoboGen-GenesisWorld-pub
+git init
+git add .
+git commit -m "Initial commit: RoboGen + Genesis on Google Colab"
+git branch -M main
+git remote add origin https://github.com/&lt;アカウント名&gt;/RoboGen-GenesisWorld.git
+git push -u origin main</pre>
+    <div class="warn">push は必ずご自身の操作で実行してください（このプロジェクトの運用ルール上、Claude は git push を自動実行しません）。Claude Code のプロンプトで <code class="inline">! git push -u origin main</code> のように <code class="inline">!</code> を付けて実行することもできます。</div>
+    <div class="note">先に手順2（URL 置換）を済ませてから push すると1回で済みます。push 後に置換した場合は再 push してください。</div>
+    <div class="goal">GitHub 上で notebooks / scripts / patches / docs などのフォルダが見えること。</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="step required" id="step2">
+  <div class="step-head">
+    <div class="step-num">2</div>
+    <h2>ノートブック内の URL 置換</h2>
+    <span class="badge required">必須</span>
+    <span class="chip pc">ローカルPC</span>
+    <span class="time">⏱ 約 2 分</span>
+  </div>
+  <div class="step-body">
+    <p>両方のノートブックの「セル3」にあるリポジトリ URL のプレースホルダを、手順1で作った実際の URL に書き換えます。</p>
+    <ol class="sub">
+      <li>対象ファイル（2つ）:
+        <ul class="sub">
+          <li><code class="inline">notebooks/01_genesis_demo.ipynb</code></li>
+          <li><code class="inline">notebooks/02_robogen_colab.ipynb</code></li>
+        </ul>
+      </li>
+      <li>次の行の <code class="inline">&lt;YOUR_ACCOUNT&gt;</code> を GitHub アカウント名に置換します:</li>
+    </ol>
+<pre># 置換前
+REPO_URL = "https://github.com/&lt;YOUR_ACCOUNT&gt;/RoboGen-GenesisWorld.git"
+# 置換後の例（アカウント名が taro-yamada の場合）
+REPO_URL = "https://github.com/taro-yamada/RoboGen-GenesisWorld.git"</pre>
+    <div class="note">アカウント名を Claude に伝えていただければ、この置換作業は Claude 側で実施できます（push はご自身で）。</div>
+    <div class="goal">2つのノートブックの REPO_URL に <code class="inline">&lt;YOUR_ACCOUNT&gt;</code> が残っていないこと。</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="step required" id="step3">
+  <div class="step-head">
+    <div class="step-num">3</div>
+    <h2>ノートブック①を Colab で実行（Genesis デモ）</h2>
+    <span class="badge required">必須</span>
+    <span class="chip colab">Colab</span>
+    <span class="time">⏱ 約 15 分</span>
+  </div>
+  <div class="step-body">
+    <p>まず確実に動く Genesis 単体デモで、Colab 環境全体が機能することを確認します。<strong>API キーもアセットも不要です。</strong></p>
+    <ol class="sub">
+      <li>ブラウザで次の URL を開きます（<code class="inline">&lt;アカウント名&gt;</code> は置換）:<br>
+        <code class="inline">https://colab.research.google.com/github/&lt;アカウント名&gt;/RoboGen-GenesisWorld/blob/main/notebooks/01_genesis_demo.ipynb</code></li>
+      <li>メニュー「<strong>ランタイム</strong>」→「<strong>ランタイムのタイプを変更</strong>」→ ハードウェア アクセラレータで「<strong>T4 GPU</strong>」を選択 → 保存</li>
+      <li>上からセルを<strong>順番に</strong>実行します（Shift + Enter）。初回は「このノートブックは Google が作成したものではありません」という警告が出るので「このまま実行」を選択</li>
+      <li>セル5（セルフチェック）が全項目 <code class="inline">OK</code> になることを確認</li>
+      <li>最後のセルで Franka アームが動く動画 (mp4) が表示されれば成功</li>
+    </ol>
+    <div class="warn">GPU を選択せずに実行すると、セル2で日本語のエラーメッセージが出て停止します。その場合はランタイム変更後、<strong>最初のセルから</strong>やり直してください。</div>
+    <div class="goal">アームが正弦波で揺れる 6 秒の動画がノートブック内に再生表示されること（マイルストーン M1 達成）。</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="step required" id="step4">
+  <div class="step-head">
+    <div class="step-num">4</div>
+    <h2>ノートブック②をステップA まで実行（RoboGen 再生）</h2>
+    <span class="badge required">必須</span>
+    <span class="chip colab">Colab</span><span class="chip drive">Drive</span>
+    <span class="time">⏱ 約 30 分</span>
+  </div>
+  <div class="step-body">
+    <p>RoboGen の環境構築（依存インストール＋パッチ適用＋アセット取得）を行い、例題タスク「ノート PC を開く」のシーン再構築動画を生成します。<strong>ここが最難関の関門で、ここさえ通れば環境構築は成功です。</strong> OpenAI キーはまだ不要です。</p>
+    <ol class="sub">
+      <li>①と同様に <code class="inline">notebooks/02_robogen_colab.ipynb</code> を Colab で開き、T4 GPU を選択</li>
+      <li>セル2〜5 を順に実行（セットアップ一括 + セルフチェック。5〜10分）</li>
+      <li>セル6 を実行すると <strong>Google Drive のマウント許可</strong>を求められます → 自分のアカウントを選択して許可
+        <ul class="sub"><li>Drive を使いたくない場合は mount の行をコメントアウトしても動作します（アセットのキャッシュができなくなるだけ）</li></ul>
+      </li>
+      <li>続けて PartNet-Mobility データセット（数 GB）が<strong>自動ダウンロード</strong>されます。<strong>SAPIEN サイトへのライセンス登録は不要</strong>です</li>
+      <li>セル7（ステップA）を実行 → シーンの周回カメラ動画が表示されれば成功</li>
+    </ol>
+    <div class="warn">ダウンロードで「Too many users have viewed or downloaded this file」エラーが出ることがあります（配布リンクへのアクセス集中）。その場合はブラウザで
+      <code class="inline">https://drive.google.com/file/d/1d-1txzcg_ke17NkHKAolXlfDnmPePFc6/view</code> を開いて手動ダウンロードし、自分の Drive の
+      <code class="inline">MyDrive/robogen_data/partnet_dataset.zip</code> にアップロードしてからセル6を再実行してください（キャッシュとして認識されます）。</div>
+    <div class="note">初回実行でエラーが出る可能性が最も高いのはこのノートブックのセル4〜7です。エラーが出たら手順8の方法でログを共有してください。修正してすぐに再試行できます。</div>
+    <div class="goal">ノート PC のあるシーンを一周するカメラ動画が表示されること（マイルストーン M2〜M3 達成）。</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="step cond" id="step5">
+  <div class="step-head">
+    <div class="step-num">5</div>
+    <h2>OpenAI API キーの Colab Secrets 登録</h2>
+    <span class="badge cond">条件付き</span>
+    <span class="chip openai">OpenAI</span><span class="chip colab">Colab</span>
+    <span class="time">⏱ 約 3 分</span>
+  </div>
+  <div class="step-body">
+    <p><strong>ステップB（LLM によるタスク新規生成）を使う場合のみ</strong>必要です。再生（A）と学習（C）だけならキー不要です。</p>
+    <ol class="sub">
+      <li><a href="https://platform.openai.com/api-keys">platform.openai.com/api-keys</a> で API キーを用意（<code class="inline">sk-...</code> で始まる文字列）</li>
+      <li>Colab 画面<strong>左側のカギアイコン 🔑（シークレット）</strong>をクリック</li>
+      <li>「＋ 新しいシークレットを追加」→ 名前欄に <code class="inline">OPENAI_API_KEY</code>（この名前ちょうどで）、値欄にキーを貼り付け</li>
+      <li>その行の「<strong>ノートブックからのアクセス</strong>」トグルを <strong>ON</strong> にする</li>
+      <li>ノートブック②のセル8 を実行 → 「疎通 OK」と表示されれば完了</li>
+    </ol>
+    <div class="warn">タスク生成は GPT への問い合わせを複数回行うため <strong>API 課金が発生します</strong>（1タスクあたり数十円〜数百円程度が目安。使用モデルとプロンプト量で変動）。使用モデルはセル8の <code class="inline">ROBOGEN_LLM_MODEL</code>（既定 gpt-4o）で変更できます。</div>
+    <div class="note">キーはノートブックにもリポジトリにも書き込まれません（Secrets → 環境変数経由で渡ります）。キーをコードに直接貼り付けないでください。</div>
+    <div class="goal">セル8 の出力に「疎通 OK: model=gpt-4o」と表示されること。</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="step cond" id="step6">
+  <div class="step-head">
+    <div class="step-num">6</div>
+    <h2>ステップB / C の実行（タスク生成・スキル学習）</h2>
+    <span class="badge cond">条件付き</span>
+    <span class="chip colab">Colab</span><span class="chip openai">OpenAI</span>
+    <span class="time">⏱ B: 約10分 ＋ C: 30分〜</span>
+  </div>
+  <div class="step-body">
+    <p><strong>ステップB（セル9）:</strong> 生成したいタスクを3つの変数で指定してから実行します。</p>
+    <ul class="sub">
+      <li><code class="inline">TASK_DESCRIPTION</code> — タスクの説明文（<strong>英語</strong>で。例: "open the door of the storage furniture"）</li>
+      <li><code class="inline">TASK_OBJECT</code> — 対象オブジェクトのカテゴリ名（例: StorageFurniture, Microwave, Laptop）</li>
+      <li><code class="inline">TASK_OBJECT_ID</code> — PartNet-Mobility のオブジェクト ID（例: 45374）</li>
+    </ul>
+    <p>実行すると Objaverse 検索用の埋め込みデータ（数 GB）が追加ダウンロードされた後、LLM がタスク config・サブステップ分解・報酬関数コードを生成し、YAML の中身が表示されます。</p>
+    <p><strong>ステップC（セル10〜11）:</strong> そのまま実行すると<strong>例題タスク</strong>を短縮設定（2万ステップ、約30分）で学習します。</p>
+    <ul class="sub">
+      <li>ステップB で生成したタスクを学習したい場合 → セル10 の <code class="inline">target = TASK_CONFIG</code> を <code class="inline">target = GENERATED_CONFIG</code> に変更</li>
+      <li>本格的に成功するまで学習したい場合 → <code class="inline">--timesteps 20000</code> を <code class="inline">--timesteps 1000000</code> などに増やす（数時間〜。Colab 無料枠のセッション上限に注意）</li>
+      <li>セル11 で結果動画の表示と Drive への保存が行われます</li>
+    </ul>
+    <div class="warn">短縮設定はあくまで「パイプラインが最後まで走ることの確認」用です。2万ステップではタスク成功までは学習できません。</div>
+    <div class="goal">B: 生成された YAML がセル出力に表示される。C: 学習過程の動画が表示され、Drive の robogen_outputs に保存される（M4〜M5 達成）。</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="step opt" id="step7">
+  <div class="step-head">
+    <div class="step-num">7</div>
+    <h2>Google Drive の活用（キャッシュ・結果保存）</h2>
+    <span class="badge opt">任意</span>
+    <span class="chip drive">Drive</span>
+    <span class="time">⏱ 約 2 分</span>
+  </div>
+  <div class="step-body">
+    <p>Colab はセッション終了で <code class="inline">/content</code> の中身がすべて消えます。Drive をマウントしておくと以下が永続化され、翌日の再開が速くなります。</p>
+    <ul class="sub">
+      <li><strong>アセット zip のキャッシュ</strong> → <code class="inline">MyDrive/robogen_data/</code>（数 GB。再ダウンロード不要になる）</li>
+      <li><strong>結果動画・学習成果</strong> → <code class="inline">MyDrive/robogen_outputs/&lt;日時&gt;/</code>（セル11 が自動保存）</li>
+    </ul>
+    <div class="warn">Drive 無料枠は 15GB です。PartNet-Mobility と Objaverse 埋め込みの両方をキャッシュすると数 GB 消費します。容量が厳しい場合はキャッシュなしでも動作します（毎セッション再ダウンロードになるだけ）。</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="step opt" id="step8">
+  <div class="step-head">
+    <div class="step-num">8</div>
+    <h2>エラーが出たときの報告方法</h2>
+    <span class="badge opt">随時</span>
+    <span class="chip colab">Colab</span><span class="chip pc">ローカルPC</span>
+    <span class="time">⏱ —</span>
+  </div>
+  <div class="step-body">
+    <p>RoboGen の Colab 移植は初回実行での不具合修正を前提に設計しています（ローカル Windows では実行検証ができないため）。エラーが出たら次の2点をそのまま Claude に貼り付けてください。<strong>1往復で修正できる情報量になるよう、エラーメッセージに診断情報を自動で含めてあります。</strong></p>
+    <ol class="sub">
+      <li><strong>セルフチェックの結果表</strong> — ノートブックのセル5（<code class="inline">check_env.py</code>）の出力全体。NG 項目には Python トレースバック全文が自動で付きます</li>
+      <li><strong>エラーが出たセルの出力全体</strong> — 途中を省略せず、セル出力を最初から最後までコピー</li>
+    </ol>
+    <div class="note">修正は「Claude がスクリプト/パッチを修正 → あなたが再 push（または Colab 上で修正版を再実行）→ 再試行」の反復で進みます。よくあるエラーと自己解決手順は <code class="inline">docs/troubleshooting.md</code> にもまとめてあります。</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 class="section">✔ 進行チェックリスト</h2>
+<div class="checklist">
+  <h2>マイルストーン確認（クリックでチェックできます）</h2>
+  <label><input type="checkbox"> <strong>M1:</strong> GitHub に push し、ノートブック①で Franka アームの動画が表示された</label>
+  <label><input type="checkbox"> <strong>M2:</strong> ノートブック②のセル5（セルフチェック）が全項目 OK になった</label>
+  <label><input type="checkbox"> <strong>M3:</strong> ステップA でシーン再構築の動画が表示された（環境構築成功）</label>
+  <label><input type="checkbox"> <strong>M4:</strong> OpenAI キーを登録し、ステップB でタスク YAML が生成された</label>
+  <label><input type="checkbox"> <strong>M5:</strong> ステップC の短縮学習が完走し、動画が Drive に保存された</label>
+</div>
+
+<footer>
+  RoboGen-GenesisWorld ユーザー操作ガイド ・ 詳細手順: README.md / docs/assets_setup.md / docs/troubleshooting.md
+</footer>
+
+</div>
+</body>
+</html>

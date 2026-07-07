@@ -1,0 +1,9 @@
+# 改行コードの保護: Colab (Linux) で実行するファイルは必ず LF で格納する
+# （Windows での commit 時に CRLF 化すると bash が「\r: command not found」で壊れるため）
+*.sh    text eol=lf
+*.py    text eol=lf
+*.patch text eol=lf
+*.ipynb text eol=lf
+*.yaml  text eol=lf
+*.txt   text eol=lf
+*.md    text eol=lf

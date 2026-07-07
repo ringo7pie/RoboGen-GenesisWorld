@@ -1,17 +1,21 @@
-# === 実行時生成物 ===
-outputs/            # シミュレーション結果（動画・ログ）の出力先
-*.mp4               # 録画動画
-*.gif               # 変換した GIF
+# 注意: gitignore は行末コメント非対応のため、コメントは必ず独立行に書くこと
 
-# === ローカル作業用（GitHub に含めない） ===
-RoboGen/            # パッチ作成の参照用にローカル clone した RoboGen 本体
-data/               # PartNet-Mobility / Objaverse 等のアセット置き場
+# --- 実行時生成物（動画・ログ） ---
+outputs/
+*.mp4
+*.gif
 
-# === Python ===
+# --- ローカル作業用（GitHub に含めない） ---
+# パッチ作成の参照用にローカル clone した RoboGen 本体
+RoboGen/
+# PartNet-Mobility / Objaverse 等のアセット置き場
+data/
+
+# --- Python ---
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# === Claude Code 作業補助 ===
+# --- Claude Code 作業補助 ---
 .claude/
 CLAUDE.md
