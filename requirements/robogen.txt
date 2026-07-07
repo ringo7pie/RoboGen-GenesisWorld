@@ -4,7 +4,8 @@
 
 # --- 物理シミュレーション・モーションプランニング ---
 pybullet==3.2.7            # [env] 物理エンジン（3.2.5 から安全な範囲で更新）
-ompl==2.0.0                # [置換] OMPL 公式 PyPI wheel（元はソースビルド。cp310〜cp313 対応）
+ompl==1.7.0                # [置換] OMPL 公式 PyPI wheel（元はソースビルド）。2.x は Python バインディングが刷新され
+                           #        StateValidityCheckerFn 等の旧 API が消えるため、pybullet_ompl 互換の 1.7.0 に固定
 
 # --- RL（強化学習） ---
 gymnasium>=0.29,<1.1       # [置換] 旧 gym 0.21 の後継（gym は Python 3.12 に非対応）
