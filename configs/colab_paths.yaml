@@ -6,9 +6,15 @@ robogen_dir: /content/RoboGen                    # RoboGen 本体の clone 先
 data_dir: /content/data                          # アセット展開先（Colab ローカル。Drive 直読みは遅いため）
 output_dir: /content/outputs                     # 動画・ログの出力先
 
+recon_work_dir: /content/recon_work              # ノートブック③の作業ディレクトリ（<RUN_ID> 単位）
+gsplat_dir: /content/gsplat                      # gsplat リポジトリ（examples/simple_trainer.py）の clone 先
+gsplat_parser_dir: /content/gsplat_parser        # rmbrualla/pycolmap パーサの隔離インストール先（公式 pycolmap と名前衝突するため）
+
 drive:
   mount_point: /content/drive                    # Google Drive のマウント先
   assets_dir: /content/drive/MyDrive/robogen_data              # ユーザーがアセットを置く場所
   partnet_mobility_dir: /content/drive/MyDrive/robogen_data/partnet_mobility  # PartNet-Mobility の配置先
   objaverse_cache_dir: /content/drive/MyDrive/robogen_data/objaverse_cache    # Objaverse の DL キャッシュ
   outputs_dir: /content/drive/MyDrive/robogen_outputs          # 結果の永続保存先
+  recon_inputs_dir: /content/drive/MyDrive/recon_inputs        # ③の入力動画/画像の置き場
+  recon_outputs_dir: /content/drive/MyDrive/recon_outputs      # ③の成果物（<RUN_ID>/ 単位）の永続保存先

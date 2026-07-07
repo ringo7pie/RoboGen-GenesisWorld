@@ -10,6 +10,8 @@ outputs/
 RoboGen/
 # PartNet-Mobility / Objaverse 等のアセット置き場
 data/
+# 一時作業・参照用 clone（gsplat-ref 等）・スクリーンショット置き場
+Temp/
 
 # --- Python ---
 __pycache__/

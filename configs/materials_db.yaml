@@ -1,0 +1,24 @@
+# 材質 → 物性値の許容範囲表（GPT-4o の推定値を物理的に妥当な範囲へ clamp するために使用）
+# 出典: Engineering ToolBox (friction coefficients), 一般的な材料密度表
+# density: [kg/m^3]、friction: 無次元、restitution: 無次元 (0=完全非弾性, 1=完全弾性)
+# 形式: 材質名: { density: [min, max], static_friction: [min, max], dynamic_friction: [min, max], restitution: [min, max] }
+
+wood:        { density: [300, 1100],   static_friction: [0.25, 0.6],  dynamic_friction: [0.2, 0.5],  restitution: [0.3, 0.6] }
+metal:       { density: [2500, 9000],  static_friction: [0.3, 0.8],   dynamic_friction: [0.2, 0.6],  restitution: [0.3, 0.7] }
+plastic:     { density: [850, 1500],   static_friction: [0.2, 0.5],   dynamic_friction: [0.15, 0.4], restitution: [0.4, 0.8] }
+glass:       { density: [2400, 2800],  static_friction: [0.4, 0.95],  dynamic_friction: [0.3, 0.6],  restitution: [0.5, 0.9] }
+ceramic:     { density: [2000, 3000],  static_friction: [0.3, 0.8],   dynamic_friction: [0.25, 0.6], restitution: [0.4, 0.8] }
+fabric:      { density: [100, 600],    static_friction: [0.4, 0.9],   dynamic_friction: [0.3, 0.8],  restitution: [0.0, 0.3] }
+paper:       { density: [400, 1200],   static_friction: [0.3, 0.6],   dynamic_friction: [0.25, 0.5], restitution: [0.0, 0.3] }
+rubber:      { density: [900, 1600],   static_friction: [0.6, 1.2],   dynamic_friction: [0.5, 1.0],  restitution: [0.6, 0.9] }
+stone:       { density: [2200, 3000],  static_friction: [0.4, 0.9],   dynamic_friction: [0.3, 0.7],  restitution: [0.2, 0.5] }
+concrete:    { density: [1800, 2500],  static_friction: [0.5, 1.0],   dynamic_friction: [0.4, 0.8],  restitution: [0.1, 0.4] }
+leather:     { density: [600, 1000],   static_friction: [0.4, 0.7],   dynamic_friction: [0.3, 0.6],  restitution: [0.1, 0.4] }
+foam:        { density: [20, 300],     static_friction: [0.5, 1.0],   dynamic_friction: [0.4, 0.9],  restitution: [0.1, 0.5] }
+cardboard:   { density: [300, 800],    static_friction: [0.4, 0.7],   dynamic_friction: [0.3, 0.6],  restitution: [0.1, 0.3] }
+composite:   { density: [500, 2000],   static_friction: [0.3, 0.7],   dynamic_friction: [0.25, 0.6], restitution: [0.2, 0.6] }
+# 不明・その他（GPT が上記以外を返したときの安全既定）
+unknown:     { density: [200, 3000],   static_friction: [0.3, 0.8],   dynamic_friction: [0.25, 0.6], restitution: [0.1, 0.6] }
+
+# 質量のサニティ範囲 [kg]（これを超える推定は警告して clamp）
+mass_range: [0.01, 1000.0]

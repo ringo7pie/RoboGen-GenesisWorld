@@ -1,0 +1,48 @@
+# ノートブック③（Real2Sim パイプライン）の既定パラメータ
+# 各スクリプトはこのファイルを読み、CLI 引数があれば上書きする
+
+# --- フレーム抽出 (extract_frames.py) ---
+frames:
+  fps: 2                     # 動画からの抽出レート [枚/秒]
+  max_frames: 300            # 最大フレーム数（超過分は等間隔で間引き）
+  min_frames: 20             # 最小フレーム数（下回ると中止）
+  long_edge: 1280            # 長辺の縮小サイズ [px]（T4 VRAM 対策）
+  blur_drop_ratio: 0.10      # Laplacian 分散が下位この割合のフレームを除去（ブレ対策）
+
+# --- SfM (run_colmap.py) ---
+colmap:
+  matcher: sequential        # 動画=sequential / 無順序画像=exhaustive
+  min_register_ratio: 0.30   # 登録率がこれ未満なら中止
+  warn_register_ratio: 0.60  # 登録率がこれ未満なら警告
+
+# --- 3DGS 学習 (train_gsplat.py) ---
+gsplat:
+  iters: 15000               # 学習ステップ数（プレビュー 7000 / 高品質 30000）
+  cap_max: 1000000           # MCMC 戦略のガウシアン数上限（T4 VRAM 対策）
+  data_factor: 1             # 画像縮小率（抽出時に縮小済みのため 1）
+
+# --- メッシュ抽出 (extract_mesh.py) ---
+mesh:
+  voxel_ratio: 512           # TSDF ボクセルサイズ = シーン bbox 対角 / この値
+  depth_trunc_factor: 2.0    # depth 打ち切り = カメラ軌跡 bbox 対角 × この係数（遠景対策）
+  opacity_min: 0.05          # この不透明度未満のガウシアンを事前除去（フロータ対策）
+  min_cluster_ratio: 0.02    # 最大クラスタ比でこの割合未満の連結成分を除去
+  decimate_target: 500000    # メッシュ簡略化の目標三角形数
+  floor_dist_ratio: 0.005    # 床 RANSAC の距離閾値 = bbox 対角 × この係数
+
+# --- Genesis 検証 (verify_genesis_usd.py) ---
+verify:
+  steps: 300                 # シミュレーションステップ数
+  ball_radius: 0.05          # [static] テスト球の半径 [m]
+  drop_height: 0.10          # [dynamic] 物体の持ち上げ高さ [m]
+  rest_speed: 0.05           # [dynamic] 静止判定の速度閾値 [m/s]
+  penetration_tol: 0.05      # [static] 床貫通の許容値 [m]
+
+# --- シーンプリセット（ノートブックの SCENE_PRESET で選択） ---
+presets:
+  indoor:                    # 部屋全体（既定）
+    gsplat: { cap_max: 1000000 }
+    mesh: { depth_trunc_factor: 2.0 }
+  outdoor:                   # 屋外（遠景対策を強める）
+    gsplat: { cap_max: 2000000 }
+    mesh: { depth_trunc_factor: 1.2, min_cluster_ratio: 0.05 }

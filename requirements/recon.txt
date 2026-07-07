@@ -1,0 +1,36 @@
+# ノートブック③（動画/画像 → 3DGS + 物理付き USD）用の依存パッケージ
+# 方針: torch / numpy / scipy / opencv / matplotlib / pandas は Colab プリインストール版を流用するため書かない
+# 注意: gsplat examples が要求する rmbrualla/pycolmap（COLMAP パーサ）は、下記の公式 pycolmap と
+#       モジュール名が衝突するため、setup_recon.sh が別ディレクトリ（--target）に隔離インストールする
+# バージョン固定: M0（Colab 初回検証）の pip freeze 結果を反映して == 固定に更新する
+
+# --- SfM（カメラポーズ推定） ---
+pycolmap-cuda12            # 公式 COLMAP バインディング（GPU SIFT。CUDA12 manylinux wheel）
+
+# --- 3DGS 学習（gsplat 本体 + examples/simple_trainer.py の実行時依存） ---
+gsplat==1.5.3              # 3DGS ラスタライザ（Apache-2.0。CUDA カーネルは初回 JIT コンパイル）
+ninja                      # JIT コンパイルの高速化
+tyro>=0.8.8                # simple_trainer の CLI パーサ
+viser                      # simple_trainer が import するビューア（--disable_viewer でも import される）
+git+https://github.com/nerfstudio-project/nerfview@4538024fe0d15fd1a0e4d760f3695fc44ca72787
+# ↑ nerfview（gsplat v1.5.3 examples/requirements.txt 記載のコミット固定）
+git+https://github.com/rahul-goel/fused-ssim@328dc9836f513d00c4b5bc38fe30478b4435cbb5
+# ↑ fused-ssim（SSIM 損失の CUDA 拡張。install 時にビルド、同コミット固定）
+torchmetrics[image]        # PSNR / SSIM / LPIPS 評価
+plyfile                    # 3DGS .ply の読み書き（メッシュ抽出・USD 詰め替えで使用）
+
+# --- メッシュ抽出・衝突形状 ---
+open3d>=0.18               # TSDF 融合・RANSAC 床分離（robogen.txt と同一制約）
+trimesh                    # watertight 化・体積・慣性計算
+coacd                      # [フェーズ2] 凸分解（動的剛体の衝突形状）
+
+# --- 物体分離（フェーズ2。HF 実装のみ使用、公式リポジトリの clone 不要） ---
+transformers>=4.53         # GroundingDINO + SAM2（テキスト指定セグメンテーション）
+
+# --- USD 出力 ---
+usd-core>=26.5             # OpenUSD（UsdPhysics / UsdVol.ParticleField3DGaussianSplat / UsdUtils 同梱）
+
+# --- 物性推定（フェーズ2）・検証 ---
+openai>=1,<2               # GPT-4o による材質・物性推定（robogen.txt と同一制約）
+genesis-world==0.4.6       # 生成した USD/メッシュの物理検証（①②と同一固定）
+imageio[ffmpeg]            # 検証動画の書き出し
