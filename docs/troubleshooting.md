@@ -64,6 +64,39 @@
   本格学習は Colab Pro などの長時間ランタイムで `--timesteps 1000000` を指定してください。
 - 中断しても `latest_model.zip` が残るため、再開時の初期値として利用できます。
 
+## ノートブック③（動画/画像 → 3DGS + USD）
+
+### gsplat の JIT コンパイルが失敗する（セル5）
+- Colab の torch / CUDA 更新が原因の可能性があります。`!nvcc --version` と
+  `python -c "import torch; print(torch.__version__, torch.version.cuda)"` の出力を添えて報告してください。
+- 応急処置: `pip install gsplat --index-url https://docs.gsplat.studio/whl/pt<torch版>cu<cuda版>` の
+  ビルド済み wheel が合えば JIT 不要になります。
+
+### 学習が GPU メモリ不足（OOM）で落ちる（セル10）
+- 効果の大きい順: `GS_CAP_MAX = 500000` → セル8 で `LONG_EDGE = 960` にして `--force` 再抽出 → `GS_ITERS = 7000`。
+
+### COLMAP の登録率が低い / SfM が失敗する（セル9）
+- 撮影が原因のことがほとんどです（`docs/recon_pipeline.md` の撮影ガイド参照）。
+  その場回転だけの動画・無地の壁・ブレが典型例です。
+- 画像入力で順序がバラバラな場合は `run_colmap.py --matcher exhaustive` を試してください。
+
+### ParticleField スキーマ非対応と表示される（セル5）
+- usd-core が 26.3 未満です。`pip install -U "usd-core>=26.5"` で更新してください。
+  非対応のままでも sidecar 方式（gaussians.ply 併置）で出力されるため、進行は可能です。
+
+### Genesis 検証で貫通（CHECK=FAIL）になる（セル16）
+- メッシュに穴がある可能性: `configs/recon_defaults.yaml` の `mesh.opacity_min` を 0.1 に、
+  `min_cluster_ratio` を 0.05 に上げてセル13 から再実行（`--force`）。
+- verify の `z_min` 数値と `static_check.mp4` を添えて報告してください。
+
+### 物体が分離されない / 誤検出（セル19）
+- `OBJECT_PROMPTS` は**英語の普通名詞をピリオド区切り**で（例 `"chair. cardboard box."`）。
+- しきい値を下げる: `--box-threshold 0.25`。クロップ画像の格子で結果を必ず目視確認してください。
+
+### 質量・摩擦が明らかにおかしい（セル20）
+- スケール校正の誤差が3乗で質量に効きます。まず `scale/scale.json` の係数を疑ってください。
+- `physics/physics.json` は手修正できます。修正後はセル21 から再実行すれば反映されます。
+
 ## 最終フォールバック: condacolab で Python 3.10 環境を作る
 
 Python 3.12 でどうしても解決できない依存問題が出た場合の代替手順です
