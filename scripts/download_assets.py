@@ -39,8 +39,16 @@ def fetch_zip(gdrive_id, cache_path):
 def extract_to(zip_path, dest_dir):
     parent = os.path.dirname(dest_dir)            # 展開先の親ディレクトリ
     os.makedirs(parent, exist_ok=True)
-    print(f"展開中: {zip_path} → {parent}")
     with zipfile.ZipFile(zip_path) as zf:
+        # --- 展開前にディスク空き容量を検査する（展開途中の容量切れは復旧が面倒なため） ---
+        need = sum(i.file_size for i in zf.infolist())         # 展開後の合計サイズ（バイト）
+        free = shutil.disk_usage(parent).free                  # 展開先の空き容量（バイト）
+        margin = 2 * 1024 ** 3                                 # 安全マージン 2GB
+        assert free > need + margin, (
+            f"ディスク空き容量が不足しています（必要 {need/1024**3:.1f}GB + 余裕2GB、"
+            f"空き {free/1024**3:.1f}GB）。不要ファイルを削除してから再実行してください。"
+        )
+        print(f"展開中: {zip_path} → {parent}（展開後 {need/1024**3:.1f}GB / 空き {free/1024**3:.1f}GB）")
         top_names = {n.split("/")[0] for n in zf.namelist()}   # zip 内のトップレベル名一覧
         zf.extractall(parent)
     # zip のトップレベル名が dest_dir と異なる場合はリネームして揃える
