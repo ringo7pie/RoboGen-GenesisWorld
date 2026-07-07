@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>データフロー解説 — 02_robogen_colab.ipynb</title>
+<style>
+  /* ===== テーマ（ライト/ダーク自動切替） ===== */
+  :root {
+    --bg: #f6f7fb; --card: #ffffff; --text: #1f2430; --muted: #6b7280;
+    --line: #e5e7eb; --code-bg: #f1f3f7; --code-text: #24292f;
+    --c-in: #2563eb;   --c-in-bg: #dbeafe;    /* 入力 = 青 */
+    --c-proc: #7c3aed; --c-proc-bg: #ede9fe;  /* 処理 = 紫 */
+    --c-llm: #0d9488;  --c-llm-bg: #ccfbf1;   /* LLM = ティール */
+    --c-learn: #d97706;--c-learn-bg: #fef3c7; /* 学習 = オレンジ */
+    --c-out: #059669;  --c-out-bg: #d1fae5;   /* 出力 = 緑 */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141a; --card: #1c1f27; --text: #e7e9ee; --muted: #9aa1ad;
+      --line: #2c3038; --code-bg: #262a33; --code-text: #d7dce3;
+      --c-in-bg: #16233f; --c-proc-bg: #251d3d; --c-llm-bg: #0e2b28;
+      --c-learn-bg: #3a2c10; --c-out-bg: #123328;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
+    line-height: 1.75; font-size: 15px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  header { background: linear-gradient(135deg, #1e3a8a, #7c3aed 55%, #0d9488);
+    color: #fff; border-radius: 14px; padding: 26px 32px; margin-bottom: 18px; }
+  header h1 { margin: 0 0 6px; font-size: 23px; }
+  header p { margin: 0; opacity: .92; }
+  h2.section { font-size: 20px; margin: 36px 0 14px; border-left: 6px solid #7c3aed; padding-left: 12px; }
+  h3 { font-size: 16px; margin: 20px 0 8px; }
+
+  /* ===== 凡例 ===== */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 8px; font-size: 13.5px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  /* ===== ファイルチップ ===== */
+  .f { display: inline-block; font-family: Consolas, monospace; font-size: 12.5px;
+    padding: 1px 8px; border-radius: 5px; border: 1px solid; margin: 1px 2px; white-space: nowrap; }
+  .f.in    { color: var(--c-in);    background: var(--c-in-bg);    border-color: var(--c-in); }
+  .f.proc  { color: var(--c-proc);  background: var(--c-proc-bg);  border-color: var(--c-proc); }
+  .f.llm   { color: var(--c-llm);   background: var(--c-llm-bg);   border-color: var(--c-llm); }
+  .f.learn { color: var(--c-learn); background: var(--c-learn-bg); border-color: var(--c-learn); }
+  .f.out   { color: var(--c-out);   background: var(--c-out-bg);   border-color: var(--c-out); }
+
+  /* ===== フロー図 ===== */
+  .flow { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin: 18px 0; }
+  .fbox { background: var(--card); border: 2px solid var(--line); border-radius: 12px;
+    padding: 14px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .fbox.in    { border-color: var(--c-in); }
+  .fbox.proc  { border-color: var(--c-proc); }
+  .fbox.llm   { border-color: var(--c-llm); }
+  .fbox.learn { border-color: var(--c-learn); }
+  .fbox.out   { border-color: var(--c-out); }
+  .fbox b.tag { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 999px;
+    color: #fff; margin-right: 8px; vertical-align: 2px; }
+  .fbox.in    b.tag { background: var(--c-in); }
+  .fbox.proc  b.tag { background: var(--c-proc); }
+  .fbox.llm   b.tag { background: var(--c-llm); }
+  .fbox.learn b.tag { background: var(--c-learn); }
+  .fbox.out   b.tag { background: var(--c-out); }
+  .arrow { text-align: center; font-size: 20px; color: var(--muted); line-height: 1.3; padding: 2px 0; }
+  .fbox .desc { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+
+  /* ===== 表 ===== */
+  table { width: 100%; border-collapse: collapse; background: var(--card);
+    border-radius: 12px; overflow: hidden; margin: 12px 0 24px; box-shadow: 0 1px 4px rgba(0,0,0,.06); font-size: 14px; }
+  th, td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: rgba(124,58,237,.10); font-size: 13px; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td code, li code { font-family: Consolas, monospace; font-size: 12.5px; background: var(--code-bg);
+    color: var(--code-text); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
+  .group td { background: rgba(124,58,237,.06); font-weight: 700; }
+
+  .note { border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 14px;
+    background: rgba(37,99,235,.10); border: 1px solid rgba(37,99,235,.3); }
+  .note::before { content: "💡 "; }
+  footer { color: var(--muted); font-size: 12.5px; text-align: center; margin: 28px 0 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>データフロー解説: 02_robogen_colab.ipynb</h1>
+  <p>RoboGen フルパイプライン（ステップA 再生 / B タスク生成 / C スキル学習）が「何のファイルを読み、何を学習し、何のファイルを出力するか」の全体像（2026-07-07・Colab 実機検証済みの構成に基づく）</p>
+</header>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--c-in)"></span>入力ファイル</span>
+  <span><span class="dot" style="background:var(--c-proc)"></span>処理（スクリプト）</span>
+  <span><span class="dot" style="background:var(--c-llm)"></span>LLM（GPT）生成</span>
+  <span><span class="dot" style="background:var(--c-learn)"></span>学習（プランニング / 強化学習）</span>
+  <span><span class="dot" style="background:var(--c-out)"></span>出力ファイル</span>
+</div>
+<p style="color:var(--muted); font-size:13px">パスの起点は Colab 上の RoboGen ディレクトリ <code>/content/RoboGen/</code>。<code>&lt;日時&gt;</code> は実行時刻（例 2026-07-07-03-37-35）、<code>&lt;タスク&gt;</code> はタスク名です。</p>
+
+<!-- ================================================================ -->
+<h2 class="section">1. 全体フロー図</h2>
+
+<div class="flow">
+  <div class="fbox in">
+    <b class="tag">入力</b><b>セットアップ（セル3〜6）で自動取得される素材</b>
+    <div>
+      <span class="f in">github.com/ringo7pie/RoboGen-GenesisWorld</span>（本リポジトリ: スクリプト・パッチ）
+      <span class="f in">github.com/Genesis-Embodied-AI/RoboGen</span>（RoboGen 本体・コミット固定）
+      <span class="f in">partnet_dataset.zip</span> → <span class="f in">data/dataset/&lt;ID&gt;/mobility.urdf</span>（関節付き3Dモデル 約2千個）
+    </div>
+    <div class="desc">setup_robogen.sh が依存インストール・パッチ適用・SB3/gym 置き換えまで自動実行</div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="fbox proc">
+    <b class="tag">ステップA</b><b>シーン再生（セル7）— 環境構築の関門・学習なし</b>
+    <div>
+      読む: <span class="f in">example_tasks/Open_Laptop/Open_Laptop_….yaml</span>
+      <span class="f in">data/dataset/9996/mobility.urdf</span>
+      <span class="f in">objaverse_utils/data/obj/&lt;uid&gt;/material_non_vhacd.urdf</span>
+    </div>
+    <div>
+      実行: <span class="f proc">scripts/run_robogen_task.py --mode replay</span> → <span class="f proc">execute.py の test_env()</span>
+    </div>
+    <div>
+      出力: <span class="f out">…/blip2/&lt;日時&gt;/construction.gif → .mp4</span>（周回カメラ動画）
+      <span class="f out">env.pkl</span> <span class="f out">meta_info.json</span>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="fbox llm">
+    <b class="tag">ステップB</b><b>LLM タスク生成（セル8〜9）— GPT が新しいタスクを作る</b>
+    <div>
+      読む: <span class="f in">TASK_DESCRIPTION 等（ユーザー入力3変数）</span>
+      <span class="f in">data/dataset/45374/ の関節ツリー・semantics</span>
+      <span class="f in">gpt_4/prompts/*.py（プロンプト雛形）</span>
+      <span class="f in">OPENAI_API_KEY</span>
+    </div>
+    <div>
+      実行: <span class="f llm">python -m gpt_4.prompts.prompt_from_description</span>（GPT-4o を複数回呼び出し）
+    </div>
+    <div>
+      出力: <span class="f out">data/generated_task_from_description/&lt;タスク&gt;_&lt;ID&gt;_&lt;日時&gt;/config.yaml</span>
+      <span class="f out">task_&lt;タスク&gt;/substeps.txt ほか定義一式</span>
+      <span class="f out">報酬関数 .py（GPT が書いた Python コード）</span>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="fbox learn">
+    <b class="tag">ステップC</b><b>スキル学習（セル10）— ここが「学習」の本体</b>
+    <div>
+      読む: <span class="f in">タスク YAML（例題 or B の生成物）</span>
+      <span class="f in">substeps.txt / substep_types.txt / action_spaces.txt</span>
+      <span class="f in">サブステップ .py（実行・報酬コード）</span>
+      <span class="f in">data/dataset/… URDF</span>
+    </div>
+    <div>
+      実行: <span class="f proc">scripts/run_robogen_task.py --mode learn</span> → <span class="f proc">execute.py</span> →
+      <span class="f learn">OMPL モーションプランニング（把持）</span> ＋ <span class="f learn">RL/sb3_learn.py（SAC 強化学習）</span>
+    </div>
+    <div>
+      出力: <span class="f out">best_model.zip / latest_model.zip（学習済み方策）</span>
+      <span class="f out">state_*.pkl（軌跡）</span>
+      <span class="f out">execute.gif / best.gif</span>
+      <span class="f out">all-&lt;日時&gt;.gif → .mp4（最終動画）</span>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+
+  <div class="fbox out">
+    <b class="tag">保存</b><b>結果の永続化（セル11）</b>
+    <div>
+      <span class="f out">Google Drive: MyDrive/robogen_outputs/&lt;日時&gt;/*.mp4</span>（Colab セッション終了後も残る）
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 class="section">2. 入力ファイル一覧（詳しい説明）</h2>
+
+<table>
+  <tr><th style="width:38%">ファイル / パス</th><th>説明</th></tr>
+  <tr class="group"><td colspan="2">A. タスク定義（「何をするタスクか」を決める入力）</td></tr>
+  <tr>
+    <td><span class="f in">example_tasks/Open_Laptop/Open_Laptop_The_robotic_arm_opens_….yaml</span></td>
+    <td><b>タスク定義 YAML（シーンの設計図）</b>。登場オブジェクト（名前・種類・サイズ・机上配置・初期関節角）、タスク説明文、成果物の置き場（solution_path）を記述。例題は 46 種類同梱。ステップB を使うと GPT がこれと同形式の YAML を新規生成する</td>
+  </tr>
+  <tr>
+    <td><span class="f in">…/task_Open_Laptop/substeps.txt</span></td>
+    <td><b>サブステップ分解</b>。タスクを段階に分けた手順書（例:「grasp the laptop screen」→「open the laptop screen」）。1行 = 1 サブステップ</td>
+  </tr>
+  <tr>
+    <td><span class="f in">…/task_Open_Laptop/substep_types.txt</span></td>
+    <td><b>各サブステップの実行方式</b>。<code>primitive</code>（モーションプランニングで解く: 把持・接近など）か <code>reward</code>（強化学習で解く: 操作など）かを1行ずつ指定</td>
+  </tr>
+  <tr>
+    <td><span class="f in">…/task_Open_Laptop/action_spaces.txt</span></td>
+    <td><b>RL の行動空間</b>。強化学習サブステップでロボットが出力する行動の種類（例 <code>delta-translation</code> = グリッパ先端の微小移動量）</td>
+  </tr>
+  <tr>
+    <td><span class="f in">…/grasp_the_laptop_screen.py<br>…/open_the_laptop_screen.py</span></td>
+    <td><b>サブステップごとの実行・報酬コード（GPT 生成物）</b>。primitive 用は「どのリンクを掴むか」の実行コード、reward 用は<b>報酬関数 <code>compute_reward()</code></b>（例: 画面の開き角度が目標に近いほど高報酬）。<b>強化学習はこの報酬を最大化するように進む</b></td>
+  </tr>
+  <tr class="group"><td colspan="2">B. 3D アセット（シーンに登場する「物」のモデル）</td></tr>
+  <tr>
+    <td><span class="f in">data/dataset/&lt;ID&gt;/mobility.urdf</span><br><span style="font-size:12px;color:var(--muted)">例: 9996=ノートPC, 45374=収納家具</span></td>
+    <td><b>PartNet-Mobility データセット（自動ダウンロード）</b>。蝶番や引き出しなど「動く関節」を持つ日用品の 3D モデル。URDF（ロボット記述形式）でリンク・関節・可動域を定義。RoboGen 公式のパース済み版を <code>gdown</code> で取得（ライセンス登録不要）。付属の関節ツリー・semantics テキストは<b>ステップB で GPT への入力</b>にもなる</td>
+  </tr>
+  <tr>
+    <td><span class="f in">objaverse_utils/data/obj/&lt;uid&gt;/material_non_vhacd.urdf</span></td>
+    <td><b>Objaverse の小物メッシュ（実行時に必要分だけ自動ダウンロード）</b>。マグカップ・ペンなどタスクの脇役。タスク YAML 記載の uid から取得し、obj → 正規化 → URDF 化まで自動処理される</td>
+  </tr>
+  <tr>
+    <td><span class="f in">objaverse_utils/text_to_uid.json</span></td>
+    <td><b>物体名 → Objaverse uid の対応表（キャッシュ）</b>。「a common coffee mug」等のテキストから 3D モデルを引くための辞書。ここに無い新規物体を探すときだけ、下の埋め込みファイルが必要になる</td>
+  </tr>
+  <tr>
+    <td><span class="f in">objaverse_utils/data/*.pt（任意）</span></td>
+    <td><b>Objaverse 全 80 万件の文埋め込み（数十 GB・distractor 生成でのみ必要）</b>。今回の検証ではディスク圧迫のため未使用（メインの学習には不要）</td>
+  </tr>
+  <tr class="group"><td colspan="2">C. ユーザー入力・鍵（ステップB のみ）</td></tr>
+  <tr>
+    <td><span class="f in">TASK_DESCRIPTION / TASK_OBJECT / TASK_OBJECT_ID</span></td>
+    <td>セル9 で指定する3変数。作りたいタスクの説明文（英語）・対象カテゴリ・PartNet ID。<b>ここが「言葉からタスクを作る」入口</b></td>
+  </tr>
+  <tr>
+    <td><span class="f in">OPENAI_API_KEY（Colab Secrets）</span></td>
+    <td>GPT-4o 呼び出し用の API キー。環境変数経由で渡され、ファイルには保存されない</td>
+  </tr>
+  <tr class="group"><td colspan="2">D. 本リポジトリの実行スクリプト（処理の担い手）</td></tr>
+  <tr>
+    <td><span class="f proc">scripts/setup_robogen.sh</span> / <span class="f proc">apply_patches.sh</span> / <span class="f proc">patches/*.patch</span></td>
+    <td>RoboGen の clone（コミット固定）→ 依存インストール（<code>requirements/robogen.txt</code>、ompl==1.7.0 固定）→ Python 3.12 対応パッチ適用、の一括セットアップ</td>
+  </tr>
+  <tr>
+    <td><span class="f proc">robogen_overrides/RL/sb3_learn.py</span> / <span class="f proc">robogen_overrides/gym/__init__.py</span></td>
+    <td>RL 学習部の stable-baselines3 実装（旧 ray 1.13 の置き換え）と、gym→gymnasium 互換 shim。RoboGen 内にコピーされて動く</td>
+  </tr>
+  <tr>
+    <td><span class="f proc">scripts/run_robogen_task.py</span></td>
+    <td>タスク実行の入口 CLI。<code>--mode replay</code>（再生）/<code>--mode learn</code>（学習）を切り替え、結果 GIF の mp4 変換まで行う</td>
+  </tr>
+</table>
+
+<!-- ================================================================ -->
+<h2 class="section">3. 「何から何を学習するのか」</h2>
+
+<div class="fbox learn" style="margin-bottom:14px">
+  <b class="tag">学習</b><b>サブステップの方式別に2種類の「学習」が走る（ステップC）</b>
+</div>
+
+<table>
+  <tr><th style="width:20%">方式</th><th style="width:40%">入力（何から）</th><th>学習・出力（何を）</th></tr>
+  <tr>
+    <td><b>primitive</b><br>（OMPL モーションプランニング）<br><span style="font-size:12px;color:var(--muted)">例:「画面を掴む」</span></td>
+    <td>・現在のロボット関節角<br>・シーン内の障害物形状（<span class="f in">mobility.urdf</span> 等の衝突形状）<br>・掴む対象リンク（<span class="f in">grasp_the_laptop_screen.py</span> が指定）</td>
+    <td>厳密には「学習」ではなく<b>探索計画</b>。BITstar アルゴリズムが<b>衝突しない関節軌道</b>を数秒で計算し、実行後の状態を <span class="f out">state_*.pkl</span> に保存。次のサブステップの開始状態になる</td>
+  </tr>
+  <tr>
+    <td><b>reward</b><br>（SAC 強化学習・SB3）<br><span style="font-size:12px;color:var(--muted)">例:「画面を開く」</span></td>
+    <td>・<b>観測</b>: ロボットと対象物の状態ベクトル（関節角・グリッパ位置・対象関節の開き角など）<br>・<b>行動</b>: <span class="f in">action_spaces.txt</span> の定義（delta-translation）<br>・<b>報酬</b>: <span class="f in">open_the_laptop_screen.py</span> の <code>compute_reward()</code>（<b>GPT が書いた報酬式</b>）<br>・開始状態: 直前サブステップの <span class="f in">state_*.pkl</span></td>
+    <td><b>方策ニューラルネットワーク（MLP 256×3層）を学習</b>。「今の観測でグリッパをどう動かせば報酬（＝画面が開く度合い）が最大になるか」を試行錯誤（今回 2 万ステップ、本格学習は 100 万）。成果物は <span class="f out">best_model.zip</span>（最良方策）と <span class="f out">latest_model.zip</span>（最新）。5000 ステップごとに評価ロールアウトを行い <span class="f out">eval_N/execute.gif</span> と <span class="f out">best_state/best.gif</span> を記録</td>
+  </tr>
+</table>
+
+<div class="note">つまり本システムの「学習」の流れは — <b>GPT がタスクと報酬関数（.py）を書く（ステップB）→ その報酬を使って SAC がロボットの動かし方（ニューラルネット方策）を学ぶ（ステップC）</b> — という2段構えです。検証時のリターン（累積報酬）が負のままなのは 2 万ステップの短縮設定のためで、パイプライン確認としては正常です。</div>
+
+<!-- ================================================================ -->
+<h2 class="section">4. 出力ファイル一覧（詳しい説明）</h2>
+
+<p style="font-size:13.5px;color:var(--muted)">出力の起点 = タスク YAML 内の <code>solution_path</code>（例題は <code>example_tasks/Open_Laptop/task_Open_Laptop/</code>、生成タスクは <code>data/generated_task_from_description/…/task_&lt;タスク&gt;/</code>）</p>
+
+<table>
+  <tr><th style="width:42%">ファイル / パス</th><th>説明</th></tr>
+  <tr class="group"><td colspan="2">ステップA（再生）の出力</td></tr>
+  <tr>
+    <td><span class="f out">&lt;solution_path&gt;/blip2/&lt;日時&gt;/construction.gif / .mp4</span></td>
+    <td><b>シーン構築の周回カメラ動画</b>。組み上がったシーン（ノートPC・机・小物・ロボット）を 360° 撮影したもの。これが出れば環境構築成功</td>
+  </tr>
+  <tr>
+    <td><span class="f out">同フォルダ/env.pkl・meta_info.json</span></td>
+    <td>構築したシーンの全状態スナップショットと、実行時設定の記録</td>
+  </tr>
+  <tr class="group"><td colspan="2">ステップB（タスク生成）の出力 — data/generated_task_from_description/&lt;タスク&gt;_&lt;ID&gt;_&lt;日時&gt;/</td></tr>
+  <tr>
+    <td><span class="f out">config.yaml</span></td>
+    <td><b>GPT が生成したタスク定義 YAML</b>。例題と同じ形式（オブジェクト・サイズ・初期関節角・タスク説明）。次のステップC の入力になる</td>
+  </tr>
+  <tr>
+    <td><span class="f out">task_&lt;タスク&gt;/substeps.txt ほか定義一式・報酬 .py</span></td>
+    <td><b>GPT が生成したサブステップ分解・実行方式・行動空間・報酬関数コード</b>。「LLM がロボットの練習メニューを書く」に相当する RoboGen の核心部分</td>
+  </tr>
+  <tr>
+    <td><span class="f out">同フォルダ内の *.json（応答ログ）</span></td>
+    <td>GPT とのやり取り（プロンプト・応答・所要時間）の記録。生成結果の検証・再現に使える</td>
+  </tr>
+  <tr class="group"><td colspan="2">ステップC（学習）の出力</td></tr>
+  <tr>
+    <td><span class="f out">&lt;solution_path&gt;/primitive_states/&lt;日時&gt;/&lt;サブステップ&gt;/state_*.pkl・execute.gif</span></td>
+    <td><b>モーションプランニングの結果</b>。把持完了までの各時刻の環境状態（pkl）と実行映像。最後の state が次サブステップの開始点</td>
+  </tr>
+  <tr>
+    <td><span class="f out">&lt;solution_path&gt;/RL_sac/&lt;日時&gt;/&lt;サブステップ&gt;/best_model.zip・latest_model.zip</span></td>
+    <td><b>学習済み方策（本システムの最重要成果物）</b>。SB3 形式のニューラルネット。<code>SAC.load()</code> で読み込めば再利用・追加学習・デモ再生ができる。latest はセッション切れ対策の最新版</td>
+  </tr>
+  <tr>
+    <td><span class="f out">同フォルダ/eval_1〜N/execute.gif・state_*.pkl</span></td>
+    <td>5000 ステップごとの<b>評価ロールアウト</b>映像と軌跡。学習が進む様子を時系列で確認できる</td>
+  </tr>
+  <tr>
+    <td><span class="f out">同フォルダ/best_state/best.gif・state_*.pkl・return_&lt;値&gt;.txt</span></td>
+    <td><b>最良評価時</b>の映像・軌跡・リターン値（例 return_-1933.098.txt）。ファイル名の数値がそのままスコア</td>
+  </tr>
+  <tr>
+    <td><span class="f out">&lt;solution_path&gt;/all-&lt;日時&gt;.gif / .mp4</span></td>
+    <td><b>最終成果動画</b>。全サブステップ（把持→操作）を連結した通し映像。セル10 の最後に <code>RESULT_MP4=</code> として表示される</td>
+  </tr>
+  <tr>
+    <td><span class="f out">&lt;solution_path&gt;/experiment/meta_info_&lt;日時&gt;.json・all_last_state_files_&lt;日時&gt;.txt</span></td>
+    <td>実行設定と、各サブステップ最終状態ファイルへのパス一覧（再開・デバッグ用）</td>
+  </tr>
+  <tr class="group"><td colspan="2">セル11（永続保存）の出力</td></tr>
+  <tr>
+    <td><span class="f out">Google Drive: MyDrive/robogen_outputs/&lt;日時&gt;/*.mp4</span></td>
+    <td>直近の動画を Drive にコピー。<b>Colab の /content はセッション終了で消える</b>ため、残したい成果物はここに置く</td>
+  </tr>
+</table>
+
+<!-- ================================================================ -->
+<h2 class="section">5. 処理の流れ（セル番号 × ファイル対応表）</h2>
+
+<table>
+  <tr><th style="width:10%">セル</th><th style="width:26%">実行するもの</th><th style="width:30%">読む（入力）</th><th>書く（出力）</th></tr>
+  <tr><td>2</td><td>GPU 確認（nvidia-smi / torch）</td><td>—</td><td>—</td></tr>
+  <tr><td>3</td><td><code>git clone</code>（本リポジトリ）</td><td><span class="f in">GitHub: RoboGen-GenesisWorld</span></td><td>/content/RoboGen-GenesisWorld/</td></tr>
+  <tr><td>4</td><td><span class="f proc">setup_robogen.sh</span></td><td><span class="f in">GitHub: RoboGen 本体</span> <span class="f in">requirements/robogen.txt</span> <span class="f in">patches/*.patch</span> <span class="f in">robogen_overrides/</span></td><td>/content/RoboGen/（パッチ適用済み）<span class="f out">.patches_applied</span></td></tr>
+  <tr><td>5</td><td><span class="f proc">check_env.py --stage robogen</span></td><td>環境全体</td><td>OK/NG 診断表（画面出力）</td></tr>
+  <tr><td>6</td><td>Drive マウント + <span class="f proc">download_assets.py --download</span></td><td><span class="f in">partnet_dataset.zip（gdown / Drive キャッシュ）</span></td><td><span class="f out">data/dataset/&lt;ID&gt;/…</span> <span class="f out">Drive: robogen_data/partnet_dataset.zip</span></td></tr>
+  <tr><td>7 <b>A</b></td><td><span class="f proc">run_robogen_task.py --mode replay</span></td><td><span class="f in">タスク YAML</span> <span class="f in">mobility.urdf</span> <span class="f in">Objaverse obj</span></td><td><span class="f out">construction.mp4</span> <span class="f out">env.pkl</span></td></tr>
+  <tr><td>8</td><td>OpenAI キー設定＋疎通</td><td><span class="f in">Colab Secrets: OPENAI_API_KEY</span></td><td>—（環境変数のみ）</td></tr>
+  <tr><td>9 <b>B</b></td><td><span class="f llm">python -m gpt_4.prompts.prompt_from_description</span></td><td><span class="f in">説明文3変数</span> <span class="f in">data/dataset/&lt;ID&gt;/ 関節情報</span> <span class="f in">gpt_4/prompts/*.py</span></td><td><span class="f out">config.yaml</span> <span class="f out">substeps.txt 等</span> <span class="f out">報酬 .py</span></td></tr>
+  <tr><td>10 <b>C</b></td><td><span class="f proc">run_robogen_task.py --mode learn</span> →<br><span class="f learn">OMPL</span>＋<span class="f learn">sb3_learn.py (SAC)</span></td><td><span class="f in">タスク YAML＋solution 一式</span> <span class="f in">state_*.pkl（前段の結果）</span></td><td><span class="f out">best_model.zip</span> <span class="f out">eval_N/execute.gif</span> <span class="f out">all-&lt;日時&gt;.mp4</span></td></tr>
+  <tr><td>11</td><td>結果表示＋Drive 保存</td><td>生成済み mp4 群</td><td><span class="f out">Drive: robogen_outputs/&lt;日時&gt;/*.mp4</span></td></tr>
+</table>
+
+<div class="note">サブステップは<b>数珠つなぎ</b>で処理されます: サブステップ1（把持・primitive）の最終状態 <code>state_*.pkl</code> がサブステップ2（開く・reward）の開始状態になり、全サブステップの映像が最後に <code>all-&lt;日時&gt;.mp4</code> へ連結されます。</div>
+
+<footer>RoboGen-GenesisWorld — 02_robogen_colab.ipynb データフロー解説（ソースコード実読・Colab 実機検証に基づく）</footer>
+
+</div>
+</body>
+</html>
